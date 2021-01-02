@@ -47,9 +47,12 @@ def add_torrents():
     for idx, link in enumerate(links, 1):
         resp = session.get(f'{SITE}/{link}')
         soup = BeautifulSoup(resp.content, features='lxml')
-        a = soup.select_one('a[href^=torrents\.php\?action\=download]')['href']
+        a_tag = soup.select_one('a[href^=torrents\.php\?action\=download]')
+        if not a_tag:
+            logger.warning('Error with %s', link)
+            continue
 
-        content = session.get(f'{SITE}/{a}').content
+        content = session.get(f"{SITE}/{a_tag['href']}").content
         filename = hashlib.md5(content).hexdigest()
         torrent_path = f'/srv/torrent/watch/{filename}.torrent'
         with open(torrent_path, "wb") as t:
@@ -58,7 +61,7 @@ def add_torrents():
         torrents.append(torrent_path)
 
         logger.info('%d/%d\t%s', idx, cnt, torrent_path)
-        time.sleep(0.5)
+        time.sleep(1.5)
 
     # with directory watch this is not needed
     # output = subprocess.check_output(['deluge-console', 'add', *torrents])

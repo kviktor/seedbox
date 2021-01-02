@@ -10,6 +10,14 @@ MAX_TORRENTS_SIZE = int(os.environ['MAX_TORRENTS_SIZE'])
 client = DelugeRPCClient('127.0.0.1', 58846, DELUGE_USERNAME, DELUGE_PASSWORD)
 
 
+def print_info(torrents):
+    for data in torrents:
+        print(f"{data[b'name']} - {data[b'downloading_size']} ({data[b'total_size']})")
+        priorities = list(data[b'file_priorities'])
+        for f in data[b'files']:
+            print(f"\t{f[b'path']} - {f[b'size']} - {priorities[f[b'index']]}")
+
+
 def get_active_torrents_with_sizes():
     torrents = []
     total_size_sum = 0
@@ -47,7 +55,7 @@ def remove_old_torrents(torrents):
         name = data[b'name']
 
         # for partial downloads seeding_time remains 0
-        if seeding_time > 4 * 24 * 60 * 60 or active_time > 6 * 24 * 60 * 60:
+        if seeding_time > 4 * 24 * 60 * 60 or active_time > 5 * 24 * 60 * 60:
             print(f'Removing {name}')
             client.core.remove_torrent(data[b'_id'], True)
             continue
@@ -86,9 +94,7 @@ def remove_big_files(torrents, downloading_size):
 
 if __name__ == '__main__':
     torrents, total_size, downloading_size = get_active_torrents_with_sizes()
+    print_info(torrents)
 
-    if is_over(downloading_size):
-        torrents, downloading_size = remove_old_torrents(torrents)
-
-    if is_over(downloading_size):
-        remove_big_files(torrents, downloading_size)
+    torrents, downloading_size = remove_old_torrents(torrents)
+    remove_big_files(torrents, downloading_size)
